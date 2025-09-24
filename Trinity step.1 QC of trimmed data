@@ -1,0 +1,22 @@
+##
+Step1. 质量评估（Trimmed数据）
+在组装前，最后确认一下修剪后的数据质量是良好的。
+
+软件： FastQC, MultiQC
+输入： *.fastq.gz (Trimmed paired-end reads)
+输出： HTML格式的质量报告
+
+脚本示例：
+##
+
+# 进入存放trimmed数据的目录
+cd /path/to/your/trimmed_data
+
+# 创建输出目录
+mkdir -p ../qc_trimmed
+
+# 对每个trimmed的fastq文件运行FastQC
+fastqc *.fastq.gz -o ../qc_trimmed/ -t 8 # -t 指定线程数
+
+# 使用MultiQC整合所有FastQC结果
+multiqc ../qc_trimmed/ -o ../qc_trimmed/multiqc_report
