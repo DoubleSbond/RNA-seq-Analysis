@@ -1,0 +1,32 @@
+##
+Step.4 结果整理与下游分析准备
+组装结果需要整理以便用于下游分析，如基因表达定量、差异基因分析等。
+
+4.1 生成基因与转录本的映射关系文件
+这个文件对于将转录本水平的定量结果汇总到基因水平至关重要。
+
+软件： Trinity 配套脚本
+输入： Trinity.fasta
+输出： Trinity.fasta.gene_trans_map
+
+脚本示例：
+##
+
+# 进入Trinity输出目录
+cd /path/to/trinity_out_dir/
+
+# 提取基因和转录本的对应关系
+$TRINITY_HOME/util/support_scripts/get_Trinity_gene_to_trans_map.pl Trinity.fasta > Trinity.fasta.gene_trans_map
+
+4.2 为下游定量软件准备索引
+例如，为Salmon或Kallisto准备索引文件。
+
+脚本示例（Salmon）：
+# 进入Trinity输出目录
+cd /path/to/trinity_out_dir/
+
+# 为Salmon创建索引
+salmon index -t Trinity.fasta \
+             -i salmon_index \
+             --gencode \ # 因为Trinity转录本id类似GENCODE格式
+             -p 20
