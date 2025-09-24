@@ -1,0 +1,53 @@
+##
+Step.3 组装质量评估
+组装完成后，我们需要知道组装出来的结果好不好。
+
+3.1 使用Trinity自带的脚本进行评估
+软件： Trinity 配套脚本
+输入： trinity_out_dir.Trinity.fasta
+输出： 各种统计指标
+
+脚本示例：
+##
+
+# 进入Trinity输出目录
+cd /path/to/trinity_out_dir/
+
+# 1. 统计基本指标：转录本数量、N50、ExN50等
+$TRINITY_HOME/util/TrinityStats.pl Trinity.fasta > Trinity_stats.txt
+
+# 2. 评估组装完整度（BUSCO评估）
+# 需要先安装BUSCO并下载合适的数据库（如 eukaryota_odb10）
+python3 run_BUSCO.py -i Trinity.fasta \
+                     -o trinity_busco \
+                     -l /path/to/database/eukaryota_odb10/ \
+                     -m transcriptome \
+                     -c 20
+
+# 3. 评估与参考基因组的比对率（如果有参考基因组）
+# 需要先准备好参考基因组文件 genome.fa 和注释文件 annotation.gtf
+$TRINITY_HOME/util/align_and_estimate_abundance.pl \
+    --transcripts Trinity.fasta \
+    --seqType fq \
+    --samples_file samples.txt \ # 一个文本文件，指定样本和比对路径
+    --est_method salmon \        # 使用salmon进行比对和定量
+    --trinity_mode \
+    --prep_reference \
+    --output_dir salmon_quant
+
+# 然后计算比对率
+$TRINITY_HOME/util/misc/contig_ExN50_statistic.pl \
+    salmon_quant/isoseq_degs/transcript_exn50/Trinity.transcript_exn50 \
+    | tee ExN50_stats.txt
+
+##
+3.2 使用其他工具评估（如CD-HIT-EST去重）
+有时Trinity结果中会有一些冗余序列，可以用CD-HIT-EST进一步去重。
+##
+
+脚本示例： 
+cd-hit-est -i Trinity.fasta \
+           -o Trinity_cdhit.fasta \
+           -T 20 \ # 线程
+           -M 0 \  # 内存限制，0为无限制
+           -c 0.95 # 相似度阈值
