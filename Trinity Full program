@@ -1,0 +1,35 @@
+#!/bin/bash
+# Trinity Assembly Pipeline
+# Author: Your Name
+# Date: YYYY-MM-DD
+
+# 设置变量
+WORKDIR="/path/to/your/project"
+TRIMDIR="$WORKDIR/trimmed_data"
+TRINITY_OUT="$WORKDIR/trinity_out"
+QC_DIR="$WORKDIR/qc_trimmed"
+
+# Step 0: 进入工作目录
+cd $WORKDIR
+
+# Step 1: 对Trimmed数据做质控
+mkdir -p $QC_DIR
+fastqc $TRIMDIR/*.fastq.gz -o $QC_DIR -t 8
+multiqc $QC_DIR -o $QC_DIR
+
+# Step 2: 运行Trinity
+Trinity --seqType fq \
+        --max_memory 100G \
+        --CPU 30 \
+        --left $TRIMDIR/sample1_1P.fastq.gz,$TRIMDIR/sample2_1P.fastq.gz \
+        --right $TRIMDIR/sample1_2P.fastq.gz,$TRIMDIR/sample2_2P.fastq.gz \
+        --output $TRINITY_OUT
+
+# Step 3: 组装评估
+cd $TRINITY_OUT
+$TRINITY_HOME/util/TrinityStats.pl Trinity.fasta > Trinity_stats.txt
+
+# Step 4: 生成基因-转录本映射文件
+$TRINITY_HOME/util/support_scripts/get_Trinity_gene_to_trans_map.pl Trinity.fasta > Trinity.fasta.gene_trans_map
+
+echo "Trinity Assembly Pipeline Finished!"
