@@ -1,0 +1,13 @@
+"""
+Perigrapha hoenei 转录组BLAST分析管道
+模块化设计 - 面向生物信息学家的Python编程思维
+"""
+
+# 导入标准化模块
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime
+import re
+import os
