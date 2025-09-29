@@ -1,0 +1,64 @@
+class QualityFilter:
+    """
+    质量过滤模块 - 核心思维：灵活可配置的过滤标准
+    """
+    
+    # 默认过滤阈值 - 可轻松修改
+    DEFAULT_THRESHOLDS = {
+        'max_evalue': 1e-20,      # E值阈值
+        'min_identity': 40,       # 最小一致性
+        'min_alignment_length': 30,  # 最小比对长度
+    }
+    
+    def __init__(self, thresholds=None):
+        # 使用用户提供的阈值或默认值
+        self.thresholds = thresholds or self.DEFAULT_THRESHOLDS.copy()
+    
+    def apply_filters(self, df, verbose=True):
+        """应用质量过滤"""
+        original_count = len(df)
+        
+        # 逐步应用过滤条件（便于调试）
+        filtered_df = df.copy()
+        
+        # 1. E值过滤
+        pre_evalue = len(filtered_df)
+        filtered_df = filtered_df[filtered_df['evalue'] < self.thresholds['max_evalue']]
+        if verbose:
+            print(f"  E值过滤: {pre_evalue:,} → {len(filtered_df):,} "
+                  f"(移除 {pre_evalue - len(filtered_df):,})")
+        
+        # 2. 一致性过滤
+        pre_identity = len(filtered_df)
+        filtered_df = filtered_df[filtered_df['pident'] > self.thresholds['min_identity']]
+        if verbose:
+            print(f"  一致性过滤: {pre_identity:,} → {len(filtered_df):,} "
+                  f"(移除 {pre_identity - len(filtered_df):,})")
+        
+        # 3. 比对长度过滤
+        pre_length = len(filtered_df)
+        filtered_df = filtered_df[filtered_df['length'] > self.thresholds['min_alignment_length']]
+        if verbose:
+            print(f"  长度过滤: {pre_length:,} → {len(filtered_df):,} "
+                  f"(移除 {pre_length - len(filtered_df):,})")
+        
+        retention_rate = len(filtered_df) / original_count * 100
+        if verbose:
+            print(f"📊 总保留率: {retention_rate:.1f}% "
+                  f"({len(filtered_df):,}/{original_count:,})")
+        
+        return filtered_df
+    
+    def create_filtering_report(self, original_df, filtered_df):
+        """生成过滤报告"""
+        report = {
+            'original_count': len(original_df),
+            'filtered_count': len(filtered_df),
+            'retention_rate': len(filtered_df) / len(original_df) * 100,
+            'thresholds_used': self.thresholds,
+            'average_identity_original': original_df['pident'].mean(),
+            'average_identity_filtered': filtered_df['pident'].mean(),
+            'median_evalue_original': original_df['evalue'].median(),
+            'median_evalue_filtered': filtered_df['evalue'].median(),
+        }
+        return report
