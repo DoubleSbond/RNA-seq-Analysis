@@ -1,0 +1,65 @@
+class BlastAnalysisPipeline:
+    """
+    主分析管道 - 核心思维：将各个模块串联成完整工作流
+    """
+    
+    def __init__(self, blast_file_path):
+        self.blast_file_path = blast_file_path
+        self.raw_data = None
+        self.filtered_data = None
+        self.annotation_results = None
+        self.analysis_report = {}
+    
+    def run_full_analysis(self, filter_thresholds=None, sample_nrows=None):
+        """运行完整分析管道"""
+        print("🚀 启动BLAST分析管道...")
+        print("=" * 50)
+        
+        # 步骤1: 数据加载
+        print("📥 步骤1: 加载BLAST数据...")
+        self.raw_data = BlastDataLoader.load_blast_data(
+            self.blast_file_path, sample_nrows
+        )
+        
+        # 步骤2: 质量过滤
+        print("\n🔍 步骤2: 应用质量过滤...")
+        filter_obj = QualityFilter(filter_thresholds)
+        self.filtered_data = filter_obj.apply_filters(self.raw_data)
+        self.analysis_report['filtering'] = filter_obj.create_filtering_report(
+            self.raw_data, self.filtered_data
+        )
+        
+        # 步骤3: 基因注释
+        print("\n🏷️  步骤3: 基因家族注释...")
+        self.annotation_results = GeneAnnotator.annotate_genes(self.filtered_data)
+        
+        # 步骤4: 专门分析（如CYP450）
+        if 'CYP450' in self.annotation_results:
+            print("\n🔬 步骤4: CYP450详细分析...")
+            cyp_analysis = GeneAnnotator.detailed_cyp_analysis(
+                self.annotation_results['CYP450']
+            )
+            self.analysis_report['cyp450'] = cyp_analysis
+        
+        # 步骤5: 可视化
+        print("\n📊 步骤5: 生成可视化...")
+        fig = ResultVisualizer.plot_gene_family_distribution(self.annotation_results)
+        
+        print("\n✅ 分析完成!")
+        return self.analysis_report
+    
+    def save_results(self, output_dir="results"):
+        """保存分析结果"""
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        
+        # 保存过滤后的数据
+        if self.filtered_data is not None:
+            self.filtered_data.to_csv(f"{output_dir}/filtered_blast_results.csv", index=False)
+        
+        # 保存分析报告
+        import json
+        with open(f"{output_dir}/analysis_report.json", 'w') as f:
+            json.dump(self.analysis_report, f, indent=2)
+        
+        print(f"💾 结果已保存到 {output_dir} 目录")
