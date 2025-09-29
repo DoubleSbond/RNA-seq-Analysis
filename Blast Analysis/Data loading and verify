@@ -1,0 +1,74 @@
+class BlastDataLoader:
+    """
+    数据加载模块 - 核心思维：永远不要相信输入数据
+    """
+    
+    # 类常量 - 避免魔法数字
+    BLAST_COLUMNS = [
+        "qseqid", "sseqid", "stitle", "pident", "length", "mismatch", 
+        "gapopen", "qstart", "qend", "sstart", "send", "evalue", "bitscore"
+    ]
+    
+    EXPECTED_COLUMNS = 13  # 预期的列数
+    
+    @staticmethod
+    def validate_file_format(file_path):
+        """验证文件格式是否正确"""
+        try:
+            with open(file_path, 'r') as f:
+                first_line = f.readline().strip()
+                
+            # 检查是否是空文件
+            if not first_line:
+                raise ValueError("文件为空")
+                
+            # 检查列数是否正确（制表符分隔）
+            if len(first_line.split('\t')) != BlastDataLoader.EXPECTED_COLUMNS:
+                raise ValueError(f"列数不正确，期望{BlastDataLoader.EXPECTED_COLUMNS}列")
+                
+            return True
+            
+        except FileNotFoundError:
+            raise FileNotFoundError(f"文件不存在: {file_path}")
+        except Exception as e:
+            raise Exception(f"文件验证失败: {e}")
+    
+    @classmethod
+    def load_blast_data(cls, file_path, sample_nrows=None):
+        """
+        加载BLAST数据的主方法
+        sample_nrows: 可选参数，用于测试时只加载部分数据
+        """
+        # 1. 先验证文件
+        cls.validate_file_format(file_path)
+        
+        # 2. 加载数据（使用可选采样）
+        if sample_nrows:
+            df = pd.read_csv(file_path, sep='\t', header=None, 
+                           names=cls.BLAST_COLUMNS, nrows=sample_nrows)
+        else:
+            df = pd.read_csv(file_path, sep='\t', header=None, 
+                           names=cls.BLAST_COLUMNS)
+        
+        # 3. 数据完整性检查
+        cls._check_data_integrity(df)
+        
+        print(f"✅ 数据加载成功: {len(df):,} 行, {len(df.columns)} 列")
+        return df
+    
+    @staticmethod
+    def _check_data_integrity(df):
+        """内部方法：检查数据完整性"""
+        # 检查缺失值
+        missing_data = df.isnull().sum()
+        if missing_data.any():
+            print(f"⚠️  发现缺失值: {missing_data[missing_data > 0].to_dict()}")
+        
+        # 检查E值范围（应该是非常小的正数）
+        if (df['evalue'] < 0).any():
+            print("⚠️  发现负的E值，这可能有问题")
+        
+        # 检查一致性百分比范围
+        pident_range = (df['pident'].min(), df['pident'].max())
+        if pident_range[0] < 0 or pident_range[1] > 100:
+            print(f"⚠️  一致性百分比超出正常范围: {pident_range}")
