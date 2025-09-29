@@ -1,0 +1,64 @@
+class ResultVisualizer:
+    """
+    结果可视化模块 - 核心思维：生成发表质量的图表
+    """
+    
+    # 颜色方案 - 保持一致的专业外观
+    COLOR_PALETTE = {
+        'CYP450': '#E74C3C',
+        'Carboxylesterase': '#3498DB', 
+        'GST': '#2ECC71',
+        'UGT': '#F39C12',
+        'ABC_transporter': '#9B59B6',
+        'Digestive_enzyme': '#1ABC9C'
+    }
+    
+    @classmethod
+    def setup_plotting_style(cls):
+        """设置专业绘图风格"""
+        plt.style.use('default')
+        sns.set_palette("husl")
+        
+        # 设置中文字体（如果需要）
+        plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial']
+        plt.rcParams['axes.unicode_minus'] = False
+    
+    @classmethod
+    def plot_gene_family_distribution(cls, annotation_results, figsize=(12, 8)):
+        """绘制基因家族分布图"""
+        cls.setup_plotting_style()
+        
+        # 准备数据
+        families = list(annotation_results.keys())
+        counts = [len(df) for df in annotation_results.values()]
+        
+        # 创建图表
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+        
+        # 条形图
+        colors = [cls.COLOR_PALETTE.get(family, '#95A5A6') for family in families]
+        bars = ax1.bar(families, counts, color=colors, alpha=0.8, edgecolor='black')
+        
+        # 添加数值标签
+        for bar, count in zip(bars, counts):
+            ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 5, 
+                    str(count), ha='center', va='bottom', fontweight='bold')
+        
+        ax1.set_ylabel('Number of Transcripts')
+        ax1.set_title('Gene Family Distribution')
+        ax1.tick_params(axis='x', rotation=45)
+        
+        # 饼图（只显示主要家族）
+        major_families = [f for f, c in zip(families, counts) if c > 0]
+        major_counts = [c for c in counts if c > 0]
+        
+        if len(major_families) > 1:
+            wedges, texts, autotexts = ax2.pie(major_counts, labels=major_families, 
+                                              autopct='%1.1f%%', startangle=90)
+            for autotext in autotexts:
+                autotext.set_color('white')
+                autotext.set_fontweight('bold')
+            ax2.set_title('Proportional Distribution')
+        
+        plt.tight_layout()
+        return fig
