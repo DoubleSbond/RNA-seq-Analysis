@@ -1,0 +1,77 @@
+class GeneAnnotator:
+    """
+    基因注释模块 - 核心思维：基于关键词的模式匹配
+    """
+    
+    # 基因家族关键词词典 - 易于扩展
+    GENE_FAMILIES = {
+        'CYP450': [
+            'cytochrome P450', 'CYP450', 'CYP6', 'CYP9', 'CYP4', 
+            'CYP12', 'CYP321', 'P450'
+        ],
+        'Carboxylesterase': [
+            'carboxylesterase', 'esterase', 'acetylcholinesterase'
+        ],
+        'GST': [
+            'glutathione S-transferase', 'GST'
+        ],
+        'UGT': [
+            'UDP-glucuronosyltransferase', 'UGT', 'glycosyltransferase'
+        ],
+        'ABC_transporter': [
+            'ABC transporter', 'P-glycoprotein', 'multidrug resistance'
+        ],
+        'Digestive_enzyme': [
+            'amylase', 'protease', 'lipase', 'cellulase', 'glucosidase'
+        ]
+    }
+    
+    @classmethod
+    def annotate_genes(cls, df, gene_families=None):
+        """对数据框进行基因注释"""
+        if gene_families is None:
+            gene_families = cls.GENE_FAMILIES
+        
+        results = {}
+        
+        for family_name, keywords in gene_families.items():
+            # 创建正则表达式模式（不区分大小写）
+            pattern = '|'.join(keywords)
+            
+            # 使用str.contains进行模式匹配
+            mask = df['stitle'].str.contains(pattern, case=False, na=False)
+            family_matches = df[mask].copy()
+            
+            # 添加基因家族标签
+            family_matches['gene_family'] = family_name
+            
+            results[family_name] = family_matches
+            
+            print(f"✅ {family_name}: {len(family_matches)} 个转录本")
+        
+        return results
+    
+    @staticmethod
+    def extract_cyp_subfamily(title):
+        """从标题中提取CYP亚家族信息"""
+        # 使用正则表达式匹配CYP后跟数字和字母的模式
+        match = re.search(r'CYP(\d+[A-Z]*)', title)
+        return match.group(0) if match else "Unknown"
+    
+    @classmethod
+    def detailed_cyp_analysis(cls, cyp_data):
+        """对CYP450进行详细分析"""
+        if len(cyp_data) == 0:
+            return {}
+        
+        cyp_data = cyp_data.copy()
+        cyp_data['subfamily'] = cyp_data['stitle'].apply(cls.extract_cyp_subfamily)
+        
+        analysis = {
+            'total_count': len(cyp_data),
+            'subfamily_distribution': cyp_data['subfamily'].value_counts().to_dict(),
+            'average_identity': cyp_data['pident'].mean(),
+            'common_subfamilies': cyp_data['subfamily'].value_counts().head(10)
+        }
+        
+        return analysis
