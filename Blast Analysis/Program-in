@@ -1,0 +1,23 @@
+# 使用示例
+if __name__ == "__main__":
+    # 创建分析管道
+    pipeline = BlastAnalysisPipeline("blastx_results_ANNOTATED_best_hits.txt")
+    
+    # 自定义过滤阈值
+    custom_thresholds = {
+        'max_evalue': 1e-10,      # 更严格的E值
+        'min_identity': 50,       # 更高的一致性要求
+        'min_alignment_length': 50
+    }
+    
+    # 运行分析（可以使用sample_nrows=1000进行测试）
+    report = pipeline.run_full_analysis(filter_thresholds=custom_thresholds)
+    
+    # 保存结果
+    pipeline.save_results()
+    
+    # 打印关键结果
+    print("\n🎯 关键发现:")
+    for family, data in pipeline.annotation_results.items():
+        if len(data) > 0:
+            print(f"   {family}: {len(data)} 个高置信度转录本")
